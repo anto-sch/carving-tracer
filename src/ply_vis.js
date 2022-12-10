@@ -34,8 +34,12 @@ function undo() {
     const color = new THREE.Color(0xeb3f1c);
     const colorAttribute = scene.getObjectByName('trans_ply').geometry.getAttribute( 'color' );
     const stroke = strokes.pop();
+    console.log(stroke);
     for (var i = 0; i < stroke.length; i++) {   
         colorAttribute.setXYZ( stroke[i], color.r, color.g, color.b );
+    }
+    if (strokes.length == 0) {
+        strokes.push([]);
     }
     colorAttribute.needsUpdate = true;
 }
@@ -100,7 +104,12 @@ function init() {
     var drawingMode = false;
     //mouse position for drawing 
     document.addEventListener("mousedown", function(event){
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        
         if (event.shiftKey && event.which == 1) {
+            console.log(mouse);
+            strokes.push([]);
             drawingMode = true;
             controls.enabled = false;
             controls.update();
@@ -118,11 +127,12 @@ function init() {
     
     document.addEventListener("mouseup", function(event){
         document.onmousemove = null;
+        // if (drawingMode == true) {
+        //     strokes.push([]);
+        // }
         controls.enabled = true;
         controls.update();
     });
-
-    // var strokes = [];
 
     function animate() {
         if (drawingMode == true) {
@@ -136,9 +146,14 @@ function init() {
             for (var i = 0; i < intersects.length; i++) {
 
                 const index = intersects[i].index;
-                if (!strokePoints.includes(index)) {
+                // if (!strokePoints.includes(index)) {
+                //     // console.log(index);
+                //     strokePoints.push(index);
+                // } 
+                var stroke = strokes.length-1;
+                if (!strokes[stroke].includes(index)) {
                     // console.log(index);
-                    strokePoints.push(index);
+                    strokes[stroke].push(index);
                 } 
 
                 // console.log(intersects[i]);
@@ -154,14 +169,14 @@ function init() {
                 colorAttribute.needsUpdate = true;
             }
 
-            var strokesString = JSON.stringify(strokes);
-            if (strokePoints.length > 0 && !strokes.includes(strokePoints)) {
-                var strokePointsString = JSON.stringify(strokePoints);
-                var c = strokesString.indexOf(strokePointsString);
-                if(c == -1){
-                    strokes.push(strokePoints);
-                }
-            }  
+            // var strokesString = JSON.stringify(strokes);
+            // if (strokePoints.length > 0 && !strokes.includes(strokePoints)) {
+            //     var strokePointsString = JSON.stringify(strokePoints);
+            //     var c = strokesString.indexOf(strokePointsString);
+            //     if(c == -1){
+            //         strokes.push(strokePoints);
+            //     }
+            // }  
         }
 
         // console.log(strokes);
