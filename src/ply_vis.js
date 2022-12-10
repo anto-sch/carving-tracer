@@ -7,6 +7,7 @@ import { PLYExporter } from "three/examples/jsm/exporters/PLYExporter.js";
 var container;
 var camera, scene, renderer, controls;
 var strokes = [];
+var redoStrokes = [];
 
 function downloadPly() {
     // create mesh from point cloud
@@ -28,18 +29,27 @@ function downloadPly() {
   }
 
 function undo() {
-    console.log("undo");
-    console.log(strokes);
-    
-    const color = new THREE.Color(0xeb3f1c);
+    // const color = new THREE.Color(0xeb3f1c);
     const colorAttribute = scene.getObjectByName('trans_ply').geometry.getAttribute( 'color' );
+    const vertexColor = scene.getObjectByName('ply').geometry.getAttribute( 'color' );
     const stroke = strokes.pop();
-    console.log(stroke);
-    for (var i = 0; i < stroke.length; i++) {   
+    redoStrokes.push(stroke);
+
+    for (var i = 0; i < stroke.length; i++) {
+        const color = new THREE.Color(vertexColor.getX(stroke[i]), vertexColor.getY(stroke[i]), vertexColor.getZ(stroke[i]));   
         colorAttribute.setXYZ( stroke[i], color.r, color.g, color.b );
     }
-    if (strokes.length == 0) {
-        strokes.push([]);
+    colorAttribute.needsUpdate = true;
+}
+
+function redo() {
+    const color = new THREE.Color(0x3dc236);
+    const colorAttribute = scene.getObjectByName('trans_ply').geometry.getAttribute( 'color' );
+    const stroke = redoStrokes.pop();
+    strokes.push(stroke);
+
+    for (var i = 0; i < stroke.length; i++) {   
+        colorAttribute.setXYZ( stroke[i], color.r, color.g, color.b );
     }
     colorAttribute.needsUpdate = true;
 }
@@ -60,9 +70,22 @@ function init() {
 
     //undo button
     const undoBtn = document.createElement("button");
+    undoBtn.id = "undo";
     undoBtn.innerHTML = "Undo";
+    // if (strokes.length === 0) {
+    //     undoBtn.disabled = true;
+    // } else {
+    //     undoBtn.disabled = false;
+    // }
     document.body.appendChild(undoBtn);
     undoBtn.addEventListener('click', () => undo());
+
+    //redo button
+    const redoBtn = document.createElement("button");
+    redoBtn.id = "redo";
+    redoBtn.innerHTML = "Redo";
+    document.body.appendChild(redoBtn);
+    redoBtn.addEventListener('click', () => redo());
 
     //div container for 3D object
     container = document.createElement("div");
@@ -107,8 +130,7 @@ function init() {
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         
-        if (event.shiftKey && event.which == 1) {
-            console.log(mouse);
+        if (event.shiftKey && event.which === 1) {
             strokes.push([]);
             drawingMode = true;
             controls.enabled = false;
@@ -116,7 +138,6 @@ function init() {
         } else {
             drawingMode = false;
             controls.update();
-            // controls.enabled = true;
         }
 
         document.onmousemove = function(event) {
@@ -127,36 +148,29 @@ function init() {
     
     document.addEventListener("mouseup", function(event){
         document.onmousemove = null;
-        // if (drawingMode == true) {
-        //     strokes.push([]);
-        // }
         controls.enabled = true;
         controls.update();
     });
 
     function animate() {
-        if (drawingMode == true) {
+        if (drawingMode === true) {
             raycaster.setFromCamera(mouse, camera);
             // TO DO: set raycaster threshold and tracing color interactively
             raycaster.params.Points.threshold = 0.3;
 
             var intersects = raycaster.intersectObjects(scene.children);
-            var strokePoints =[]
             
             for (var i = 0; i < intersects.length; i++) {
 
                 const index = intersects[i].index;
-                // if (!strokePoints.includes(index)) {
-                //     // console.log(index);
-                //     strokePoints.push(index);
-                // } 
+
                 var stroke = strokes.length-1;
+
                 if (!strokes[stroke].includes(index)) {
                     // console.log(index);
                     strokes[stroke].push(index);
                 } 
 
-                // console.log(intersects[i]);
                 // tracing color
                 // const color = new THREE.Color(0xeb3f1c);
                 // const color = new THREE.Color(0xf0d62e);
@@ -178,43 +192,41 @@ function init() {
             //     }
             // }  
         }
-
-        // console.log(strokes);
         renderer.render(scene, camera);
         requestAnimationFrame(animate);
         controls.update();
     }
 
     //initialize ply loader
-    // let plyLoader = new PLYLoader();
+    let plyLoader = new PLYLoader();
 
-    // plyLoader.load(
-    //     "R0149.ply",
-    //     function (geometry) {
-    //         geometry.computeVertexNormals();
-    //         const material = new THREE.PointsMaterial( { size: 0.01, vertexColors: true } );
-    //         // const mesh = new THREE.Points( geometry, material );
-    //         const mesh = new THREE.Mesh( geometry, material );
-    //         mesh.name = 'ply';
-    //         mesh.position.z -= .01;
-    //         mesh.updateMatrixWorld();
-    //         scene.add( mesh );
-    //         renderer.render(scene, camera)
-    //         animate();
-    //         console.log(scene.getObjectByName('ply'));
+    plyLoader.load(
+        "R0149.ply",
+        function (geometry) {
+            geometry.computeVertexNormals();
+            const material = new THREE.PointsMaterial( { size: 0.01, vertexColors: true } );
+            // const mesh = new THREE.Points( geometry, material );
+            const mesh = new THREE.Mesh( geometry, material );
+            mesh.name = 'ply';
+            mesh.position.z -= .01;
+            mesh.updateMatrixWorld();
+            scene.add( mesh );
+            renderer.render(scene, camera)
+            animate();
+            console.log(scene.getObjectByName('ply'));
 
-    //     },
-    //     // called when loading is in progress
-    //     function (xhr) {
-    //         console.log(xhr);
-    //         console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
-    //     },
-    //     // called when loading has errors
-    //     function (error) {
-    //         console.log("An error happened");
-    //         console.log(error);
-    //     }
-    // );
+        },
+        // called when loading is in progress
+        function (xhr) {
+            console.log(xhr);
+            console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+        },
+        // called when loading has errors
+        function (error) {
+            console.log("An error happened");
+            console.log(error);
+        }
+    );
 
     let transPlyLoader = new PLYLoader();
 
