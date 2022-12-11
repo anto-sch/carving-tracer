@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { PLYExporter } from "three/examples/jsm/exporters/PLYExporter.js";
+import './ply_vis.css';
 
 var container;
 var camera, scene, renderer, controls;
@@ -28,6 +29,7 @@ function downloadPly() {
     element.click();
   }
 
+// undo strokes
 function undo() {
     // const color = new THREE.Color(0xeb3f1c);
     const colorAttribute = scene.getObjectByName('trans_ply').geometry.getAttribute( 'color' );
@@ -42,6 +44,7 @@ function undo() {
     colorAttribute.needsUpdate = true;
 }
 
+// redraw deleted strokes
 function redo() {
     const color = new THREE.Color(0x3dc236);
     const colorAttribute = scene.getObjectByName('trans_ply').geometry.getAttribute( 'color' );
@@ -59,12 +62,17 @@ export default function PLYvis() {
 }
 
 init();
-// animate();
 
 function init() {
+    //div container for 3D object
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    container.id = "container";
+
     //download button
     const btn = document.createElement("button");
     btn.innerHTML = "Download PLY";
+    btn.className = "downloadButton";
     document.body.appendChild(btn);
     btn.addEventListener('click', () => downloadPly());
 
@@ -72,11 +80,7 @@ function init() {
     const undoBtn = document.createElement("button");
     undoBtn.id = "undo";
     undoBtn.innerHTML = "Undo";
-    // if (strokes.length === 0) {
-    //     undoBtn.disabled = true;
-    // } else {
-    //     undoBtn.disabled = false;
-    // }
+    undoBtn.className = "undoButton";
     document.body.appendChild(undoBtn);
     undoBtn.addEventListener('click', () => undo());
 
@@ -84,17 +88,13 @@ function init() {
     const redoBtn = document.createElement("button");
     redoBtn.id = "redo";
     redoBtn.innerHTML = "Redo";
+    redoBtn.className = "redoButton";
     document.body.appendChild(redoBtn);
     redoBtn.addEventListener('click', () => redo());
-
-    //div container for 3D object
-    container = document.createElement("div");
-    document.body.appendChild(container);
 
     //set up raycaster
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2(null, null);
-    console.log(mouse)
 
     //initialize camera position
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 150);
@@ -117,7 +117,6 @@ function init() {
 
     //add renderer to DOM
     container.appendChild(renderer.domElement);
-
 
     //initialize interactive controls to move in scene
     controls = new OrbitControls(camera, renderer.domElement);
@@ -167,7 +166,6 @@ function init() {
                 var stroke = strokes.length-1;
 
                 if (!strokes[stroke].includes(index)) {
-                    // console.log(index);
                     strokes[stroke].push(index);
                 } 
 
@@ -205,7 +203,6 @@ function init() {
         function (geometry) {
             geometry.computeVertexNormals();
             const material = new THREE.PointsMaterial( { size: 0.01, vertexColors: true } );
-            // const mesh = new THREE.Points( geometry, material );
             const mesh = new THREE.Mesh( geometry, material );
             mesh.name = 'ply';
             mesh.position.z -= .01;
