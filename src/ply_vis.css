@@ -1,0 +1,19 @@
+button {
+    position: absolute;
+    display: block;
+    z-index: 99;
+    /* left: 50%; */
+    top: 5%;
+}
+
+.undoButton {
+    right: 20%;
+}
+
+.redoButton {
+    right: 15%;
+}
+
+.downloadButton {
+    left: 10%;
+}
